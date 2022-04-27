@@ -12,14 +12,14 @@ int simple_init(void)
   /* priority flag */
   printk(KERN_INFO "Loading Module\n");
 
-   return 0;
+  return 0;
 }
 
 /**
  * @brief Module exit point: called when the module is removed.
  */
 void simple_exit(void) {
-	printk(KERN_INFO "Removing Module\n");
+  printk(KERN_INFO "Removing Module\n");
 }
 
 /* Macros for registering module entry and exit points. */
