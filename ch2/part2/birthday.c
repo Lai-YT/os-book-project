@@ -30,7 +30,7 @@ Birthday* AllocateNewBirthday(const int day, const int month, const int year) {
 }
 
 /**
- * @brief Prints the date contents of Birthday elements to kernel log buffer in format DD/MM/YYYY.
+ * @brief Prints the date contents of Birthday elements to kernel log buffer in format MM/DD/YYYY.
  * @param head The head of the list which links the elements to be print.
  */
 void PrintBirthdaysToLogBuffer(struct list_head* head) {
@@ -40,7 +40,7 @@ void PrintBirthdaysToLogBuffer(struct list_head* head) {
                       head,
                       list /* name of the list_head member in Birthday */) {
     printk(KERN_INFO "Birthday %d has date %02d/%02d/%d.\n",
-           i++, curr_birthday->day, curr_birthday->month, curr_birthday->year);
+           i++, curr_birthday->month, curr_birthday->day, curr_birthday->year);
   }
 }
 
@@ -68,11 +68,11 @@ LIST_HEAD(birthday_list);
  */
 int InitBirthdayList(void) {
   Birthday* birthdays[] = {
-    AllocateNewBirthday(2, 8, 1995),
-    AllocateNewBirthday(12, 15, 2000),
-    AllocateNewBirthday(3, 21, 1999),
-    AllocateNewBirthday(9, 3, 1985),
-    AllocateNewBirthday(7, 29, 1991),
+    AllocateNewBirthday(8, 2, 1995),
+    AllocateNewBirthday(15, 12, 2000),
+    AllocateNewBirthday(21, 3, 1999),
+    AllocateNewBirthday(3, 9, 1985),
+    AllocateNewBirthday(29, 7, 1991),
   };
   int i = 0;
   printk(KERN_INFO "Creating birthday list...\n");
