@@ -41,4 +41,4 @@ Invoke the `dmesg` command to ensure the list is properly constructed once the k
 **Delete** the elements from the linked list and return the *free* memory back to the kernel. \
 Again, invoke the `dmesg` command to check that the list has been removed once the kernel module has been unloaded.
 
-![terminal view of kernel module loading and log buffer](https://imgur.com/a/OMMbtNw)
+![terminal view of kernel module loading and log buffer](https://user-images.githubusercontent.com/52515370/165524841-71f71212-971d-4872-bdf7-ec4c6c0f91e0.png)
