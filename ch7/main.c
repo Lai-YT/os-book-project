@@ -28,35 +28,32 @@ pthread_mutex_t resource_mutex;
 pthread_mutex_t rand_mutex;
 
 /**
- * @brief Initializes `maximum`, `need` and `allocation`. `available`s have to
- * be determined before calling this function.
- *
- * @details
- * `maximum`s are randomly set with number of instances that are not greater
- * than `available`s; `need`s are set to be as same as `maximum`s; `allocation`s
- * are set to zeros.
+ * @brief Enters the bank and makes `NUMBER_OF_REQUESTS` requests and releases.
  */
-void init_states(void);
+void *enter_bank(void *customer_num);
 
-void print_states(void);
+/** @brief Tries to request some resources and prints out the state. */
+void make_request(int customer_num);
+
+/** @brief Releases some resources and prints out the state. */
+void make_release(int customer_num);
 
 enum Status { FAILURE = -1, SUCCESS = 0 };
 
 /**
- * @return 0 if successful (the request has been granted) and –1 if
- * unsuccessful.
+ * @return SUCCESS (0) if successful (the request has been granted) and FAILURE
+ * (-1) if unsuccessful.
  */
-int request_resources(int customer_num, int request[]);
+enum Status request_resources(int customer_num, int request[]);
+
+/** @return SUCCESS (0), release does not fail. */
+enum Status release_resources(int customer_num, int release[]);
 
 /**
- * @return 0
+ * @brief Returns whether the system in an safe state.
+ *
+ * @details This is where the Banker's algorithm goes.
  */
-int release_resources(int customer_num, int release[]);
-
-void print_request(int request[]);
-void print_release(int release[]);
-
-/** @brief This is where the Banker's algorithm goes. */
 bool is_safe(void);
 
 /**
@@ -65,7 +62,21 @@ bool is_safe(void);
  */
 int *gen_random_resources(int max[]);
 
-void *enter_bank(void *customer_num);
+/**
+ * @brief Initializes `maximum`, `need` and `allocation`. `available`s have to
+ * be determined before calling this function.
+ *
+ * @details
+ * `maximum`s are randomly set with number of instances that are not greater
+ * than `available`s; `need`s are set to be as same as `maximum`s; `allocation`s
+ * are set to zeros.
+ */
+void init_state(void);
+
+void print_state(void);
+
+void print_request(int request[]);
+void print_release(int release[]);
 
 int main(int argc, const char *argv[]) {
   srand(time(NULL));
@@ -73,25 +84,26 @@ int main(int argc, const char *argv[]) {
   pthread_mutex_init(&resource_mutex, NULL);
   pthread_mutex_init(&rand_mutex, NULL);
 
-  init_states();
+  init_state();
 
   pthread_t customers[NUMBER_OF_CUSTOMERS];
   /* NOTE: customer_nums are passed as pointers, so we have to keep them
-    untouched in another place. I've tried to passed the one incrementing with the
-    loop, which makes all the threads use the same customer_num and breaks. */
+    untouched in another place. I've tried to passed the one incrementing with
+    the loop, which makes all the threads use the same customer_num and breaks.
+  */
   int customer_nums[NUMBER_OF_CUSTOMERS];
   for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++) {
     customer_nums[i] = i;
   }
+
   for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++) {
     pthread_create(&customers[i], NULL, enter_bank, &customer_nums[i]);
   }
-
   for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++) {
     pthread_join(customers[i], NULL);
   }
 
-  print_states();
+  print_state();
 
   pthread_mutex_destroy(&resource_mutex);
   pthread_mutex_destroy(&rand_mutex);
@@ -100,39 +112,55 @@ int main(int argc, const char *argv[]) {
 
 void *enter_bank(void *customer_num_) {
   const int customer_num = *((int *)customer_num_);
+
   for (int i = 0; i < NUMBER_OF_REQUESTS; i++) {
     pthread_mutex_lock(&resource_mutex);
-    int *request = gen_random_resources(need[customer_num]);
-    if (request_resources(customer_num, request) == -1) {
-      /* TODO: the customer has to wait until the request is granted. */
-      printf("[REQUEST DENIED ON CUSTOMER %d]\n", customer_num);
-    } else {
-      printf("[REQUEST GRANTED ON CUSTOMER %d]\n", customer_num);
-    }
-    print_request(request);
-    free(request);
-
-    print_states();
-    printf("####\n");
+    make_request(customer_num);
     pthread_mutex_unlock(&resource_mutex);
 
     pthread_mutex_lock(&resource_mutex);
-    int *release = gen_random_resources(allocation[customer_num]);
-    release_resources(customer_num, release);
-    printf("[RELEASE BY CUSTOMER %d]\n", customer_num);
-    print_release(release);
-    free(release);
-
-    print_states();
-    printf("####\n");
+    make_release(customer_num);
     pthread_mutex_unlock(&resource_mutex);
   }
+
   pthread_exit(NULL);
+}
+
+void make_request(int customer_num) {
+  int *request = gen_random_resources(need[customer_num]);
+  enum Status status = request_resources(customer_num, request);
+
+  char examination_res[8] = {0}; /* either DENIED or GRANTED */
+  if (status == FAILURE) {
+    sprintf(examination_res, "DENIED");
+  } else {
+    sprintf(examination_res, "GRANTED");
+  }
+  printf("[REQUEST %s ON CUSTOMER %d]\n", examination_res, customer_num);
+  print_request(request);
+
+  free(request);
+
+  print_state();
+  printf("####\n");
+}
+
+void make_release(int customer_num) {
+  int *release = gen_random_resources(allocation[customer_num]);
+  release_resources(customer_num, release);
+
+  printf("[RELEASE BY CUSTOMER %d]\n", customer_num);
+  print_release(release);
+
+  free(release);
+
+  print_state();
+  printf("####\n");
 }
 
 void grant_request(int customer_num, int request[]);
 
-int request_resources(int customer_num, int request[]) {
+enum Status request_resources(int customer_num, int request[]) {
   grant_request(customer_num, request);
   if (!is_safe()) {
     for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
@@ -153,13 +181,13 @@ void grant_request(int customer_num, int request[]) {
   }
 }
 
-int release_resources(int customer_num, int release[]) {
+enum Status release_resources(int customer_num, int release[]) {
   for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
     allocation[customer_num][i] -= release[i];
     available[i] += release[i];
     need[customer_num][i] += release[i];
   }
-  return SUCCESS; /* release does not fail */
+  return SUCCESS;
 }
 
 int *gen_random_resources(int max[]) {
@@ -172,21 +200,21 @@ int *gen_random_resources(int max[]) {
   return amount;
 }
 
-void init_states(void) {
+void init_state(void) {
   for (int customer_num = 0; customer_num < NUMBER_OF_CUSTOMERS;
        customer_num++) {
     int *max = gen_random_resources(available);
     for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
       maximum[customer_num][i] = max[i];
-      allocation[customer_num][i] = 0;
-      need[customer_num][i] = max[i]; /* no resource allocated yet */
+      need[customer_num][i] = max[i];
+      allocation[customer_num][i] = 0; /* no resource allocated yet */
     }
     free(max);
   }
 }
 
-void print_states(void) {
-  printf("The current states is:\n"
+void print_state(void) {
+  printf("The current state is:\n"
          "     Allocation      Max       Available\n"
          "    ------------  ----------  ------------\n"
          "      A   B   C    A   B   C    A   B   C \n");
@@ -217,11 +245,11 @@ bool has_resources_to_work(int work[], int need[]);
 
 bool is_safe(void) {
   /* step 1. initialize the safety check */
-  int work[NUMBER_OF_RESOURCES];
+  int work[NUMBER_OF_RESOURCES] = {0};
   for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
     work[i] = available[i];
   }
-  bool finish[NUMBER_OF_CUSTOMERS];
+  bool finish[NUMBER_OF_CUSTOMERS] = {0};
   for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++) {
     finish[i] = false;
   }
