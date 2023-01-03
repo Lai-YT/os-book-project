@@ -61,7 +61,7 @@ enum Status release_resources(int customer_num, int release[]);
  *
  * @details This is where the Banker's algorithm goes.
  */
-bool is_safe(void);
+bool is_in_safe_state(void);
 
 /**
  * @brief Generates `NUMBER_OF_RESOURCES` random amounts of resources, each of

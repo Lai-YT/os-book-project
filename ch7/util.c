@@ -89,7 +89,7 @@ void grant_request(int customer_num, int request[]);
 
 enum Status request_resources(int customer_num, int request[]) {
   grant_request(customer_num, request);
-  if (!is_safe()) {
+  if (!is_in_safe_state()) {
     for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
       allocation[customer_num][i] -= request[i];
       available[i] += request[i];
@@ -170,7 +170,7 @@ void print_release(int release[]) {
 
 bool has_resources_to_work(int work[], int need[]);
 
-bool is_safe(void) {
+bool is_in_safe_state(void) {
   /* step 1. initialize the safety check */
   int work[NUMBER_OF_RESOURCES] = {0};
   for (int i = 0; i < NUMBER_OF_RESOURCES; i++) {
