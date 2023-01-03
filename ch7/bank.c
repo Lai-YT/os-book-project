@@ -13,7 +13,7 @@
 #define NUMBER_OF_REQUESTS 10
 
 /* the available amount of each resource */
-int available[NUMBER_OF_RESOURCES] = {10, 5, 7}; /* read from input later */
+int available[NUMBER_OF_RESOURCES];
 
 /* the maximum demand of each customer */
 int maximum[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES];
@@ -26,6 +26,13 @@ int need[NUMBER_OF_CUSTOMERS][NUMBER_OF_RESOURCES];
 
 pthread_mutex_t resource_mutex;
 pthread_mutex_t rand_mutex;
+
+/**
+ * @brief Reads the number of available resources from command line arguments.
+ * Exits the program if the format isn't correct.
+ * @note Arguments that are not in the integer form are parsed as 0.
+ */
+void read_available(int argc, const char *argv[]);
 
 /**
  * @brief Enters the bank and makes `NUMBER_OF_REQUESTS` requests and releases.
@@ -84,12 +91,14 @@ int main(int argc, const char *argv[]) {
   pthread_mutex_init(&resource_mutex, NULL);
   pthread_mutex_init(&rand_mutex, NULL);
 
+  read_available(argc, argv);
   init_state();
 
   pthread_t customers[NUMBER_OF_CUSTOMERS];
   /* NOTE: customer_nums are passed as pointers, so we have to keep them
-    untouched in another place. I've tried to passed the one incrementing with
-    the loop, which makes all the threads use the same customer_num and breaks.
+    untouched in another place. I've tried to passed the one incrementing
+    with the loop, which makes all the threads use the same customer_num and
+    breaks.
   */
   int customer_nums[NUMBER_OF_CUSTOMERS];
   for (int i = 0; i < NUMBER_OF_CUSTOMERS; i++) {
@@ -108,6 +117,22 @@ int main(int argc, const char *argv[]) {
   pthread_mutex_destroy(&resource_mutex);
   pthread_mutex_destroy(&rand_mutex);
   return 0;
+}
+
+void read_available(int argc, const char *argv[]) {
+  if (argc != 4) {
+    printf("Usage: bank [AVAILABLE_1] [AVAILABLE_2] [AVAILABLE_3]\n");
+    exit(EXIT_FAILURE);
+  }
+  ++argv; /* ignore the program name itself */
+  for (int i = 0; i < 3; i++) {
+    const int num = atoi(argv[i]);
+    if (num < 0) {
+      printf("Error: the number of available resources can't be negative.\n");
+      exit(EXIT_FAILURE);
+    }
+    available[i] = num;
+  }
 }
 
 void *enter_bank(void *customer_num_) {
