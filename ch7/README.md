@@ -4,9 +4,9 @@ For this project, you will write a multithreaded program that implements the ban
 The banker will grant a request only if it leaves the system in a safe state. A request that leaves the system in an unsafe state will be denied. \
 This programming assignment combines three separate topics:
 
-- (1) multithreading
-- (2) preventing race conditions
-- (3) deadlock avoidance
+1. multithreading
+2. preventing race conditions
+3. deadlock avoidance
 
 ## How to use?
 
